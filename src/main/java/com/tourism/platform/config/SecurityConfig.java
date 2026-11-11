@@ -108,7 +108,7 @@ public class SecurityConfig {
     @SuppressWarnings("java:S5122") // reviewed: wildcard branch pairs * with credentials off; else explicit patterns
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Trace-Id", "X-Request-Id"));
         configuration.setExposedHeaders(List.of("X-Trace-Id", "X-Request-Id"));
         configuration.setMaxAge(3600L);
@@ -176,6 +176,9 @@ public class SecurityConfig {
                 .requestMatchers("/users/check-email").permitAll()
                 .requestMatchers("/auth/**").permitAll()
                 
+                // Root redirect to Swagger UI (local profile serves the app at "/")
+                .requestMatchers(HttpMethod.GET, "/").permitAll()
+
                 // Swagger/OpenAPI endpoints
                 .requestMatchers("/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
