@@ -19,6 +19,12 @@
     <description>Backend API for Tourism Intelligent Platform</description>
 
     <properties>
+
+        
+        <sonar.organization>lricardol-2</sonar.organization>
+        <sonar.projectKey>lRicardol_Back_Plang</sonar.projectKey>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        
         <java.version>17</java.version>
         <!-- BOM alineado con Spring Boot 3.5.x (Northfields) -->
         <spring-cloud.version>2025.0.2</spring-cloud.version>
