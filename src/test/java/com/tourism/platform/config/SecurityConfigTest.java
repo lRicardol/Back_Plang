@@ -164,7 +164,7 @@ class SecurityConfigTest {
                 .contains("http://localhost:3000", "https://example.com");
     }
 
-    @Test
+     @Test
     void corsConfigurationSourceShouldAllowRequiredHttpMethods() {
         UrlBasedCorsConfigurationSource source =
                 (UrlBasedCorsConfigurationSource) securityConfig.corsConfigurationSource();
@@ -174,7 +174,7 @@ class SecurityConfigTest {
         CorsConfiguration config = source.getCorsConfiguration(request);
         assertThat(config).isNotNull();
         assertThat(Objects.requireNonNull(config).getAllowedMethods())
-                .containsExactlyInAnyOrder("GET", "POST", "PUT", "DELETE", "OPTIONS");
+                .containsExactlyInAnyOrder("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
     }
 
     @Test
