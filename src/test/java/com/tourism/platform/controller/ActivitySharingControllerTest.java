@@ -31,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import tools.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tourism.platform.dto.ShareActivityRequest;
 import com.tourism.platform.dto.SharedActivityActionRequest;
 import com.tourism.platform.dto.SharedActivityResponse;
@@ -39,6 +38,7 @@ import com.tourism.platform.model.SharedActivityDecisionAction;
 import com.tourism.platform.model.User;
 import com.tourism.platform.repository.UserRepository;
 import com.tourism.platform.service.SharedActivityService;
+import tools.jackson.databind.json.JsonMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -67,8 +67,7 @@ class ActivitySharingControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(activitySharingController).build();
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper = JsonMapper.builder().build();
         
         testUser = new User();
         testUser.setId(1L);

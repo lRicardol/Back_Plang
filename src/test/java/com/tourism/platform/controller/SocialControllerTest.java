@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import tools.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.json.JsonMapper;
 import com.tourism.platform.dto.ConnectionRequestDto;
 import com.tourism.platform.dto.SendConnectionRequestDto;
 import com.tourism.platform.dto.SendMessageRequest;
@@ -92,8 +92,7 @@ class SocialControllerTest {
         SocialController controller = new SocialController(socialService, jwtTokenProvider, customUserDetailsService);
         ReflectionTestUtils.setField(controller, "demoEndpointsEnabled", true);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper = JsonMapper.builder().build();
     }
 
     @AfterEach

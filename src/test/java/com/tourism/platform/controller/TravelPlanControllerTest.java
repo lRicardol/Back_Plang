@@ -1,7 +1,7 @@
 package com.tourism.platform.controller;
 
 import tools.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.json.JsonMapper;
 import com.tourism.platform.dto.ReservationDto;
 import com.tourism.platform.dto.TravelConnectionDto;
 import com.tourism.platform.dto.TravelPlanActivityDto;
@@ -86,8 +86,7 @@ class TravelPlanControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(travelPlanController).build();
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper = JsonMapper.builder().build();
 
         testUser = new User();
         testUser.setId(1L);

@@ -31,11 +31,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import tools.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tourism.platform.dto.CompatibilityMatchRequest;
 import com.tourism.platform.dto.CompatibilityMatchResponse;
 import com.tourism.platform.service.CompatibilityMatchingService;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -58,11 +58,10 @@ class CompatibilityControllerTest {
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
-    @BeforeEach
+   @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(compatibilityController).build();
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper = JsonMapper.builder().build();
     }
 
     @Test
