@@ -1,6 +1,6 @@
 package com.tourism.platform.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.tourism.platform.dto.ApiResponse;
 import com.tourism.platform.dto.ShareActivityRequest;
 import com.tourism.platform.dto.SharedActivityDecisionRequest;

@@ -1,6 +1,6 @@
 package com.tourism.platform.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.tourism.platform.observability.TraceRequestFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

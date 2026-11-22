@@ -1,6 +1,6 @@
 package com.tourism.platform.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tourism.platform.dto.ReservationDto;
 import com.tourism.platform.dto.TravelConnectionDto;

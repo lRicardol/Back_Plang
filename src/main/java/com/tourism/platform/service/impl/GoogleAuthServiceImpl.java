@@ -19,8 +19,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.tourism.platform.config.GoogleOAuthProperties;
 import com.tourism.platform.dto.UserDto;
 import com.tourism.platform.exception.BusinessException;

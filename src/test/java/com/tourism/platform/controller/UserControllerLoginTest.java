@@ -1,6 +1,6 @@
 package com.tourism.platform.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.tourism.platform.dto.UserDto;
 import com.tourism.platform.dto.UserLoginDto;
 import com.tourism.platform.exception.GlobalExceptionHandler;
