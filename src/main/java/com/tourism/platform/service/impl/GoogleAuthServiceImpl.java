@@ -19,8 +19,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.tourism.platform.config.GoogleOAuthProperties;
 import com.tourism.platform.dto.UserDto;
 import com.tourism.platform.exception.BusinessException;
@@ -31,7 +29,9 @@ import com.tourism.platform.model.UserStatus;
 import com.tourism.platform.repository.UserRepository;
 import com.tourism.platform.security.JwtTokenProvider;
 import com.tourism.platform.service.GoogleAuthService;
-
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -45,7 +45,7 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RestTemplate restTemplate;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final JsonMapper objectMapper = JsonMapper.builder().build();
 
     @Override
     public UserDto authenticateWithAuthorizationCode(String code) {
@@ -128,13 +128,13 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
 
             JsonNode node = objectMapper.readTree(response.getBody());
             JsonNode accessToken = node.get("access_token");
-            if (accessToken == null || accessToken.asText().isBlank()) {
+            if (accessToken == null || accessToken.asString().isBlank()) {
                 throw new ExternalServiceException("Google token response missing access_token");
             }
-            return accessToken.asText();
+            return accessToken.asString();
         } catch (RestClientException e) {
             throw new ExternalServiceException("Google token exchange failed: " + e.getMessage(), e);
-        } catch (java.io.IOException e) {
+        } catch (JacksonException e) {
             throw new ExternalServiceException("Google token exchange parse failed: " + e.getMessage(), e);
         }
     }
@@ -174,7 +174,7 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
             return new GoogleProfile(email, name);
         } catch (RestClientException e) {
             throw new ExternalServiceException("Google userinfo request failed: " + e.getMessage(), e);
-        } catch (java.io.IOException e) {
+        } catch (JacksonException e) {
             throw new ExternalServiceException("Google userinfo parse failed: " + e.getMessage(), e);
         }
     }
@@ -270,7 +270,7 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
          * @return string value or null
          */
         JsonNode v = node.get(field);
-        return v == null || v.isNull() ? null : v.asText();
+        return v == null || v.isNull() ? null : v.asString();
     }
 
     @SuppressWarnings("unused")
