@@ -158,12 +158,14 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Development Tools -->
+        <!-- Jackson 2 explícito: el código usa com.fasterxml.jackson.databind -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
     </dependencies>
 
@@ -247,4 +249,20 @@
             </plugin>
         </plugins>
     </build>
+        <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-devtools</artifactId>
+                    <scope>runtime</scope>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>
