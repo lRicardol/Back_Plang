@@ -17,6 +17,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 @Service
 @Transactional
 public class SharedActivityServiceImpl implements SharedActivityService {
@@ -26,31 +31,28 @@ public class SharedActivityServiceImpl implements SharedActivityService {
     private final TravelPlanActivityRepository activityRepository;
     private final UserRepository userRepository;
     private final SharedActivityRepository sharedActivityRepository;
-    private final UserConnectionRepository connectionRepository;
-    private final TravelPlanParticipantRepository participantRepository;
+    private final ConnectionRepository connectionRepository;
     private final MeterRegistry meterRegistry;
 
     public SharedActivityServiceImpl(
             TravelPlanActivityRepository activityRepository,
             UserRepository userRepository,
             SharedActivityRepository sharedActivityRepository,
-            UserConnectionRepository connectionRepository,
-            TravelPlanParticipantRepository participantRepository,
+            ConnectionRepository connectionRepository,
             MeterRegistry meterRegistry) {
         this.activityRepository = activityRepository;
         this.userRepository = userRepository;
         this.sharedActivityRepository = sharedActivityRepository;
         this.connectionRepository = connectionRepository;
-        this.participantRepository = participantRepository;
         this.meterRegistry = meterRegistry;
     }
 
     @Override
     /**
-     * Share an activity with another user within the same trip context.
+     * Share an activity with an accepted social connection.
      *
-     * Validates ownership, trip membership and an accepted connection between users
-     * before creating a pending SharedActivity record.
+     * Validates activity ownership and the accepted connection before creating
+     * a pending SharedActivity record.
      *
      * @param activityId     id of the activity to share
      * @param receiverId     id of the user receiving the shared activity
@@ -86,12 +88,6 @@ public class SharedActivityServiceImpl implements SharedActivityService {
             throw new AccessDeniedException("Only the activity owner can share this activity");
         }
 
-        boolean senderInTrip = ownerId.equals(sender.getId()) || participantRepository.existsByTravelPlanIdAndUserId(tripId, sender.getId());
-        boolean receiverInTrip = ownerId.equals(receiver.getId()) || participantRepository.existsByTravelPlanIdAndUserId(tripId, receiver.getId());
-        if (!senderInTrip || !receiverInTrip) {
-            throw new ConflictException("Both users must belong to the same trip");
-        }
-
         boolean connected = connectionRepository.existsConnectionBetweenUsersWithStatus(
                 sender.getId(), receiver.getId(), ConnectionStatus.ACCEPTED
         );
@@ -103,7 +99,12 @@ public class SharedActivityServiceImpl implements SharedActivityService {
                 activity.getId(),
                 receiver.getId()
         );
-        latestShare.map(SharedActivity::getStatus).ifPresent(this::validateLatestShareStatus);
+        if (latestShare.isPresent()) {
+            SharedActivityStatus latestStatus = latestShare.get().getStatus();
+            if (latestStatus == SharedActivityStatus.PENDING || latestStatus == SharedActivityStatus.ACCEPTED) {
+                return toResponse(latestShare.get());
+            }
+        }
 
         SharedActivity sharedActivity = new SharedActivity();
         sharedActivity.setActivity(activity);
@@ -166,6 +167,52 @@ public class SharedActivityServiceImpl implements SharedActivityService {
         return response;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<SharedActivityResponse> getSharedActivities(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Map<Long, SharedActivityResponse> shares = new LinkedHashMap<>();
+        for (SharedActivity sharedActivity : sharedActivityRepository.findByReceiverIdOrderByCreatedAtDesc(user.getId())) {
+            SharedActivityResponse response = toResponse(sharedActivity);
+            shares.put(response.getId(), response);
+        }
+        for (SharedActivity sharedActivity : sharedActivityRepository.findBySenderIdOrderByCreatedAtDesc(user.getId())) {
+            SharedActivityResponse response = toResponse(sharedActivity);
+            shares.putIfAbsent(response.getId(), response);
+        }
+
+        return new ArrayList<>(shares.values());
+    }
+
+    @Override
+    public List<SharedActivityResponse> shareAllActivities(
+            @NonNull Long travelPlanId,
+            @NonNull Long receiverId,
+            String senderUsername) {
+        User sender = userRepository.findByUsername(senderUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("Sender not found"));
+
+        List<TravelPlanActivity> activities =
+                activityRepository.findByTravelPlanIdOrderByStartTimeAsc(travelPlanId);
+        if (activities.isEmpty()) {
+            throw new ConflictException("The travel plan has no activities to share");
+        }
+
+        List<SharedActivityResponse> responses = new ArrayList<>();
+        for (TravelPlanActivity activity : activities) {
+            Long ownerId = activity.getTravelPlan() != null && activity.getTravelPlan().getUser() != null
+                    ? activity.getTravelPlan().getUser().getId()
+                    : null;
+            if (ownerId == null || !ownerId.equals(sender.getId())) {
+                throw new AccessDeniedException("Only the travel-plan owner can share activities");
+            }
+            responses.add(shareActivity(activity.getId(), receiverId, senderUsername));
+        }
+        return responses;
+    }
+
     private void validateLatestShareStatus(SharedActivityStatus status) {
         /**
          * Validate that the latest share status does not block creating a new share.
@@ -195,6 +242,14 @@ public class SharedActivityServiceImpl implements SharedActivityService {
         response.setReceiverId(sharedActivity.getReceiver().getId());
         response.setStatus(sharedActivity.getStatus());
         response.setSharedPlan(sharedActivity.isSharedPlan());
+        TravelPlanActivity activity = sharedActivity.getActivity();
+        if (activity != null) {
+            response.setActivityName(activity.getName());
+            response.setActivityDescription(activity.getDescription());
+            response.setActivityLocation(activity.getLocation());
+            response.setActivityStartTime(activity.getStartTime());
+            response.setActivityEndTime(activity.getEndTime());
+        }
         return response;
     }
 }

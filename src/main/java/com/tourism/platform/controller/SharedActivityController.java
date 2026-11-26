@@ -21,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.Objects;
+import java.util.List;
 
 @RestController
 @RequestMapping
@@ -112,6 +113,40 @@ public class SharedActivityController {
                 path, userId, (System.nanoTime() - startNanos) / 1_000_000, STATUS_SUCCESS);
         return ResponseEntity.ok(
                 ApiResponse.success(HttpStatus.OK.value(), "Shared activity updated successfully", result, path)
+        );
+    }
+
+    @GetMapping("/shared-activities")
+    @Operation(
+            summary = "Get shared activities",
+            description = "Returns shared activity requests sent or received by the authenticated user.")
+    public ResponseEntity<ApiResponse<List<SharedActivityResponse>>> getSharedActivities(
+            Authentication authentication,
+            HttpServletRequest httpServletRequest) {
+        String principal = authenticatedUsername(authentication);
+        List<SharedActivityResponse> result = sharedActivityService.getSharedActivities(principal);
+        String path = safePath(httpServletRequest);
+        return ResponseEntity.ok(
+                ApiResponse.success(HttpStatus.OK.value(), "Shared activities retrieved successfully", result, path)
+        );
+    }
+
+    @PostMapping("/travel-plans/{planId}/activities/share")
+    @Operation(summary = "Share every activity in a travel plan")
+    public ResponseEntity<ApiResponse<List<SharedActivityResponse>>> shareAllActivities(
+            @PathVariable Long planId,
+            @Valid @RequestBody ShareActivityRequest request,
+            Authentication authentication,
+            HttpServletRequest httpServletRequest) {
+        String principal = authenticatedUsername(authentication);
+        List<SharedActivityResponse> result = sharedActivityService.shareAllActivities(
+                Objects.requireNonNull(planId),
+                Objects.requireNonNull(request.getReceiverId()),
+                principal
+        );
+        String path = safePath(httpServletRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(HttpStatus.CREATED.value(), "All activities shared successfully", result, path)
         );
     }
 

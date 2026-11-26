@@ -3,6 +3,7 @@ package com.tourism.platform.service;
 import com.tourism.platform.dto.SharedActivityDecisionRequest;
 import com.tourism.platform.dto.SharedActivityResponse;
 import org.springframework.lang.NonNull;
+import java.util.List;
 
 public interface SharedActivityService {
 
@@ -25,4 +26,8 @@ public interface SharedActivityService {
      * @return SharedActivityResponse reflecting the result of the resolution
      */
     SharedActivityResponse resolveSharedActivity(@NonNull Long sharedActivityId, SharedActivityDecisionRequest request, String receiverUsername);
+
+    List<SharedActivityResponse> getSharedActivities(String username);
+
+    List<SharedActivityResponse> shareAllActivities(@NonNull Long travelPlanId, @NonNull Long receiverId, String senderUsername);
 }
