@@ -1,122 +1,105 @@
-# Back_Plang — Backend Tourism Intelligent Platform
+# Back_Plang — Backend de SmartTrip
 
-API REST construida con **Java 17 + Spring Boot 3.5** (Web, Security/JWT, JPA, WebSocket/STOMP, Flyway, SpringDoc/OpenAPI).
+API REST construida con **Java 17 + Spring Boot** (Web, Security/JWT, JPA, WebSocket/STOMP, Flyway, SpringDoc/OpenAPI).
 
-Este README explica cómo levantar el backend **100% en local (Windows)** junto con su frontend [`Front_WEB_PLAG`](https://github.com/lRicardol/Front_WEB_PLAG), usando el perfil `local` (`src/main/resources/application-local.yml`). No se requiere AWS, PostgreSQL ni ningún secreto en la nube.
+Este README explica cómo ejecutar el backend **en local** junto con su frontend [`Front_WEB_PLAG`](https://github.com/lRicardol/Front_WEB_PLAG), usando el perfil `local`. No se necesita PostgreSQL, AWS ni ninguna clave: toda la configuración local está en el repositorio.
 
 ---
 
-## Requisitos previos
+## Requisitos
 
-| Herramienta | Versión | Notas |
+| Herramienta | Versión | Cómo comprobarla |
 |---|---|---|
-| Java (JDK) | 17+ | Si no tienes un JDK global en el `PATH`, puedes usar el **JBR de PyCharm**: `C:\Program Files\JetBrains\PyCharm 2026.2.3\jbr` |
-| Apache Maven | 3.9+ | Si no está instalado globalmente, se puede usar la copia local en `~/tools/apache-maven-3.9.16` |
-| Node.js + npm | 18+ | Solo necesario para el frontend (Vite) |
-| Git Bash o PowerShell | — | Los comandos de abajo están en sintaxis Bash (Git Bash en Windows) |
+| Java (JDK) | 17 o superior | `java -version` |
+| Apache Maven | 3.9 o superior | `mvn -v` |
+| Node.js + npm | 20 o superior (solo para el frontend) | `node -v` |
+| Git | cualquiera | `git --version` |
+
+Los comandos funcionan igual en **Windows** (PowerShell o Git Bash), **macOS** y **Linux**.
 
 ---
 
-## Paso 1 — Encender el Backend en modo local
-
-### Qué incluye el perfil `local`
-
-El archivo `src/main/resources/application-local.yml` configura:
-
-- **Base de datos H2 en memoria**: `jdbc:h2:mem:tourism_platform` (no necesitas instalar PostgreSQL).
-- **Hibernate `ddl-auto: update`**: el esquema se genera desde las entidades; Flyway queda desactivado porque las migraciones `db/migration/` usan sintaxis PostgreSQL.
-- **Amadeus en modo mock** (`app.integrations.amadeus.mock-mode: true`): `/catalog/*` devuelve JSON con formato Amadeus sin credenciales ni llamadas externas.
-- **Swagger UI / OpenAPI sin token**: la documentación interactiva está abierta en el perfil local.
-- **CORS abierto a localhost**: acepta peticiones desde `http://localhost` en **cualquier puerto** (incluye `http://localhost:5173` del frontend y WebSockets).
-- **JWT secret local por defecto**: no necesitas definir `JWT_SECRET` ni `DB_*`.
-- **Sin `context-path`**: la API queda servida directamente en la raíz (`http://localhost:8080/...`).
-
-### Comandos (Git Bash)
+## Paso 1 — Ejecutar el backend
 
 ```bash
-cd "C:\Users\richa\PycharmProjects\Back_Plang"
-
-# JDK (JBR de PyCharm) y Maven locales — omite estas líneas si ya tienes java/mvn en el PATH
-export JAVA_HOME="/c/Program Files/JetBrains/PyCharm 2026.2.3/jbr"
-export PATH="$JAVA_HOME/bin:$HOME/tools/apache-maven-3.9.16/bin:$PATH"
-
-# Arrancar el backend con el perfil local
+git clone https://github.com/lRicardol/Back_Plang.git
+cd Back_Plang
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-> Alternativa sin exports: configura `JAVA_HOME` y `MAVEN_HOME` como variables de entorno de Windows y ejecuta solo `mvn spring-boot:run -Dspring-boot.run.profiles=local`.
+La primera vez tarda unos minutos porque descarga las dependencias. Está listo cuando aparece `Started TourismPlatformApplication`.
 
-### URLs útiles una vez encendido
+### Qué configura el perfil `local`
+
+El archivo [`src/main/resources/application-local.yml`](src/main/resources/application-local.yml) está versionado y **no contiene secretos reales**:
+
+- **Base de datos H2 en memoria** (`jdbc:h2:mem:tourism_platform`): no hay que instalar PostgreSQL. Los datos se borran al apagar el backend.
+- **Flyway desactivado** y esquema generado por Hibernate, porque las migraciones de `db/migration/` usan sintaxis de PostgreSQL.
+- **Amadeus en modo simulado**: el catálogo responde sin credenciales externas.
+- **Clave JWT de desarrollo**: solo sirve en local. En otros entornos la clave se define con la variable de entorno `JWT_SECRET`, nunca en el repositorio.
+- **CORS y WebSocket abiertos para `http://localhost:*`**, para que el frontend pueda conectarse.
+- **API en la raíz** (`http://localhost:8080`), sin el prefijo `/api/v1`.
+
+### Comprobar que funciona
 
 | Recurso | URL |
 |---|---|
-| Swagger UI (documentación interactiva de la API) | http://localhost:8080 → redirige a `http://localhost:8080/swagger-ui/index.html` |
+| Health check | http://localhost:8080/actuator/health → debe responder `{"status":"UP"}` |
+| Swagger UI | http://localhost:8080/swagger-ui/index.html |
 | OpenAPI JSON | http://localhost:8080/api-docs |
-| Consola H2 (inspeccionar datos) | http://localhost:8080/h2-console — JDBC URL `jdbc:h2:mem:tourism_platform`, usuario `sa`, contraseña vacía |
-| Health check | http://localhost:8080/actuator/health |
+| Consola H2 | http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:tourism_platform`, usuario `sa`, sin contraseña) |
 
-La base de datos H2 es **en memoria**: los datos se pierden al reiniciar el backend. Para probar endpoints protegidos (`/travel-plans/**`, `/social/**`, `/catalog/**`) inicia sesión con `POST /users/login` (campo `usernameOrEmail`) y usa el `token` devuelto en el botón **Authorize** de Swagger UI.
+Para probar endpoints protegidos en Swagger, primero inicia sesión con `POST /users/login` y usa el `token` devuelto en el botón **Authorize**.
 
 ---
 
-## Paso 2 — Conectar y encender el Frontend (`Front_WEB_PLAG`)
+## Paso 2 — Ejecutar el frontend
 
-### 2.1 Clonar u abrir el proyecto
+En otra terminal:
 
 ```bash
-# Si aún no lo tienes:
 git clone https://github.com/lRicardol/Front_WEB_PLAG.git
 cd Front_WEB_PLAG
-
-# O simplemente abre la carpeta existente:
-cd "C:\Users\richa\PycharmProjects\Front_WEB_PLAG"
-```
-
-### 2.2 Instalar dependencias
-
-```bash
 npm install
 ```
 
-### 2.3 Configurar la URL del API
+Crea el archivo `.env` a partir del ejemplo:
 
-El frontend lee la URL base desde la variable de entorno **`VITE_API_BASE_URL`** (ver `src/services/api.js`):
+```bash
+# macOS / Linux / Git Bash
+cp .env.example .env
 
-```js
-baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1'
+# Windows PowerShell
+Copy-Item .env.example .env
 ```
 
-Crea un archivo `.env` en la raíz de `Front_WEB_PLAG`:
-
-```env
-# Backend local (Back_Plang con perfil local, API en la raíz, sin /api/v1)
-VITE_API_BASE_URL=http://localhost:8080
-
-# Opcional: chat por WebSocket STOMP en vivo (si no se define, el chat usa solo REST)
-VITE_WS_BROKER_URL=ws://localhost:8080/ws-chat
-```
-
-> Nota: si el backend corriera con el `context-path` por defecto (`/api/v1`), la variable debería ser `http://localhost:8080/api/v1`. Con el perfil `local` el context-path está vacío, por eso va sin sufijo.
-
-### 2.4 Arrancar el frontend
+Y arráncalo:
 
 ```bash
 npm run dev
 ```
 
-Vite levantará la app en **http://localhost:5173**. El backend ya tiene habilitado **CORS y WebSockets** para ese origen (`app.cors.allowed-origin-patterns: http://localhost:*` y `app.websocket.allowed-origin-patterns` en `application-local.yml`), así que no hay que tocar nada más.
+Abre http://localhost:5173. Más detalles en el README de [`Front_WEB_PLAG`](https://github.com/lRicardol/Front_WEB_PLAG).
 
 ---
 
 ## Flujo rápido de prueba
 
-1. Backend arriba (`mvn spring-boot:run -Dspring-boot.run.profiles=local`) → `http://localhost:8080/actuator/health` debe responder `{"status":"UP"}`.
-2. Frontend arriba (`npm run dev`) → abre http://localhost:5173.
-3. **Registra un usuario o inicia sesión** desde la UI (`http://localhost:5173/login`). El registro usa `POST /users/register` y el login `POST /users/login` contra `http://localhost:8080`.
-4. Verifica la integración:
-   - En Swagger UI (`http://localhost:8080/swagger-ui/index.html`) el endpoint aparece en verde y responde 200/201.
-   - En la consola H2 (`http://localhost:8080/h2-console`) ejecuta `SELECT * FROM users;` y verás el usuario recién creado.
-   - En DevTools del navegador → pestaña Network, las peticiones irán a `http://localhost:8080/...` con el header `Authorization: Bearer <token>` tras el login.
+1. Backend encendido → http://localhost:8080/actuator/health responde `UP`.
+2. Frontend encendido → abre http://localhost:5173.
+3. **Regístrate** y luego **inicia sesión con usuario y contraseña**. El inicio de sesión con Google no funciona en local porque requiere credenciales de Google Cloud que no se guardan en el repositorio.
+4. Crea un plan de viaje y agrégale actividades.
+
+## Ejecutar las pruebas
+
+```bash
+mvn test
+```
+
+## Notas
+
+- Los scripts de `scripts/` (por ejemplo `ec2-deploy-backend.sh`) son del despliegue en AWS del semestre anterior y no se usan en local.
+- Los valores reales de producción (base de datos, `JWT_SECRET`, credenciales de Google o Amadeus) se pasan por variables de entorno y nunca se suben al repositorio.
 
 ---
 

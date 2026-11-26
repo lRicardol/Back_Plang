@@ -1,0 +1,34 @@
+server:
+  servlet:
+    context-path: ""
+
+spring:
+  config:
+    import: ""
+  datasource:
+    url: jdbc:h2:mem:tourism_platform;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  security:
+    jwt:
+      secret: clave-local-de-desarrollo-con-al-menos-32-caracteres-123456
+
+app:
+  integrations:
+    amadeus:
+      mock-mode: true
+  cors:
+    allowed-origin-patterns: http://localhost:*
+  websocket:
+    allowed-origin-patterns: http://localhost:*
