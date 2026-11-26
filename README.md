@@ -120,6 +120,42 @@ Vite levantará la app en **http://localhost:5173**. El backend ya tiene habilit
 
 ---
 
+## Punto de partida y código reutilizado
+
+Este backend es la **evolución de un proyecto existente**: la plataforma SmartTrip, desarrollada el semestre anterior (2026-1) por un equipo de 5 integrantes. En la asignatura Ingeniería de Software la retoman 3 integrantes.
+
+**Estado inicial:** tag [`v0-estado-inicial`](https://github.com/lRicardol/Back_Plang/tree/v0-estado-inicial) (commit `f55a1ea`, 11 de noviembre de 2026). Para ver todo lo que cambió desde entonces: [comparar v0-estado-inicial con main](https://github.com/lRicardol/Back_Plang/compare/v0-estado-inicial...main).
+
+**Qué se heredó (ya existía al iniciar la asignatura):**
+- API REST en Java 17 + Spring Boot con usuarios y JWT, planes de viaje, actividades, módulo social y chat por WebSocket.
+- Health check con Actuator y logs estructurados en JSON con traceId.
+- Migraciones de base de datos con Flyway y perfil local con H2 en memoria.
+- Pruebas unitarias con JUnit y Mockito.
+
+**Qué se agregó o cambió en la asignatura:**
+- Análisis estático con SonarCloud en GitHub Actions (`.github/workflows/sonarqube-analysis.yml`).
+- Análisis de dependencias con OWASP Dependency-Check en GitHub Actions, con reporte HTML y alertas en Security (`.github/workflows/dependency-check.yml`).
+- Corrección de dependencias vulnerables: actualización a Spring Boot 4.2, controlador PostgreSQL 42.7.14 y springdoc 3.2.
+- Ajuste de pruebas y configuración de Jackson para la nueva versión de Spring Boot.
+
+## Librerías de terceros y licencias
+
+Principales dependencias directas. Todas tienen licencias de código abierto que permiten su uso en este proyecto.
+
+- Spring Boot, Spring Security y Spring Cloud (web, websocket, data-jpa, security, validation, actuator, oauth2-client, test) — Apache-2.0
+- Micrometer (Prometheus) — Apache-2.0
+- Flyway — Apache-2.0
+- jjwt (JSON Web Tokens) — Apache-2.0
+- MapStruct — Apache-2.0
+- springdoc-openapi (Swagger UI) — Apache-2.0
+- Jackson (databind, jsr310) — Apache-2.0
+- Lombok — MIT
+- Controlador JDBC de PostgreSQL — BSD-2-Clause
+- H2 Database — MPL-2.0 / EPL-1.0
+
+La lista completa de dependencias (incluidas las transitivas) se obtiene con `mvn dependency:tree`.
+
+
 ## Notas
 
 - **Datos de prueba**: H2 en memoria arranca vacía en cada reinicio. Puedes crear usuarios desde Swagger UI o desde el propio frontend.
