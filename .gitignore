@@ -166,7 +166,6 @@ dependency-check-report.html
 javadoc/
 
 # Application specific
-application-local.yml
 application-dev.yml
 application-test.yml
 src/main/resources/application.yml.example
