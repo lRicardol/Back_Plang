@@ -14,8 +14,7 @@ import com.tourism.platform.model.TravelPlanActivity;
 import com.tourism.platform.model.User;
 import com.tourism.platform.repository.SharedActivityRepository;
 import com.tourism.platform.repository.TravelPlanActivityRepository;
-import com.tourism.platform.repository.TravelPlanParticipantRepository;
-import com.tourism.platform.repository.UserConnectionRepository;
+import com.tourism.platform.repository.ConnectionRepository;
 import com.tourism.platform.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -45,9 +45,7 @@ class SharedActivityServiceImplTest {
     @Mock
     private SharedActivityRepository sharedActivityRepository;
     @Mock
-    private UserConnectionRepository connectionRepository;
-    @Mock
-    private TravelPlanParticipantRepository participantRepository;
+    private ConnectionRepository connectionRepository;
 
     private SharedActivityServiceImpl service;
 
@@ -62,7 +60,6 @@ class SharedActivityServiceImplTest {
                 userRepository,
                 sharedActivityRepository,
                 connectionRepository,
-                participantRepository,
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry()
         );
 
@@ -164,9 +161,9 @@ class SharedActivityServiceImplTest {
         when(userRepository.findByUsername("sender")).thenReturn(Optional.of(sender));
         when(activityRepository.findById(7L)).thenReturn(Optional.of(activity));
         when(userRepository.findById(20L)).thenReturn(Optional.of(receiver));
-        when(participantRepository.existsByTravelPlanIdAndUserId(99L, 20L)).thenReturn(false);
+        when(connectionRepository.existsConnectionBetweenUsersWithStatus(10L, 20L, ConnectionStatus.ACCEPTED)).thenReturn(false);
 
-        assertThrows(ConflictException.class, () -> service.shareActivity(7L, 20L, "sender"));
+        assertThrows(AccessDeniedException.class, () -> service.shareActivity(7L, 20L, "sender"));
     }
 
     @Test
@@ -174,7 +171,6 @@ class SharedActivityServiceImplTest {
         when(userRepository.findByUsername("sender")).thenReturn(Optional.of(sender));
         when(activityRepository.findById(7L)).thenReturn(Optional.of(activity));
         when(userRepository.findById(20L)).thenReturn(Optional.of(receiver));
-        when(participantRepository.existsByTravelPlanIdAndUserId(99L, 20L)).thenReturn(true);
         when(connectionRepository.existsConnectionBetweenUsersWithStatus(10L, 20L, ConnectionStatus.ACCEPTED)).thenReturn(true);
         when(sharedActivityRepository.findTopByActivityIdAndReceiverIdOrderByCreatedAtDesc(7L, 20L))
                 .thenReturn(Optional.empty());
@@ -208,14 +204,19 @@ class SharedActivityServiceImplTest {
         when(userRepository.findByUsername("sender")).thenReturn(Optional.of(sender));
         when(activityRepository.findById(7L)).thenReturn(Optional.of(activity));
         when(userRepository.findById(20L)).thenReturn(Optional.of(receiver));
-        when(participantRepository.existsByTravelPlanIdAndUserId(99L, 20L)).thenReturn(true);
         when(connectionRepository.existsConnectionBetweenUsersWithStatus(10L, 20L, ConnectionStatus.ACCEPTED)).thenReturn(true);
         SharedActivity existing = new SharedActivity();
+        ReflectionTestUtils.setField(existing, "id", 77L);
+        existing.setActivity(activity);
+        existing.setSender(sender);
+        existing.setReceiver(receiver);
         existing.setStatus(SharedActivityStatus.PENDING);
         when(sharedActivityRepository.findTopByActivityIdAndReceiverIdOrderByCreatedAtDesc(7L, 20L))
                 .thenReturn(Optional.of(existing));
 
-        assertThrows(ConflictException.class, () -> service.shareActivity(7L, 20L, "sender"));
+        SharedActivityResponse response = service.shareActivity(7L, 20L, "sender");
+        assertEquals(77L, response.getId());
+        assertEquals(SharedActivityStatus.PENDING, response.getStatus());
     }
 
     @Test
@@ -223,7 +224,6 @@ class SharedActivityServiceImplTest {
         when(userRepository.findByUsername("sender")).thenReturn(Optional.of(sender));
         when(activityRepository.findById(7L)).thenReturn(Optional.of(activity));
         when(userRepository.findById(20L)).thenReturn(Optional.of(receiver));
-        when(participantRepository.existsByTravelPlanIdAndUserId(99L, 20L)).thenReturn(true);
         when(connectionRepository.existsConnectionBetweenUsersWithStatus(10L, 20L, ConnectionStatus.ACCEPTED)).thenReturn(false);
 
         assertThrows(AccessDeniedException.class, () -> service.shareActivity(7L, 20L, "sender"));
@@ -234,14 +234,19 @@ class SharedActivityServiceImplTest {
         when(userRepository.findByUsername("sender")).thenReturn(Optional.of(sender));
         when(activityRepository.findById(7L)).thenReturn(Optional.of(activity));
         when(userRepository.findById(20L)).thenReturn(Optional.of(receiver));
-        when(participantRepository.existsByTravelPlanIdAndUserId(99L, 20L)).thenReturn(true);
         when(connectionRepository.existsConnectionBetweenUsersWithStatus(10L, 20L, ConnectionStatus.ACCEPTED)).thenReturn(true);
         SharedActivity existing = new SharedActivity();
+        ReflectionTestUtils.setField(existing, "id", 78L);
+        existing.setActivity(activity);
+        existing.setSender(sender);
+        existing.setReceiver(receiver);
         existing.setStatus(SharedActivityStatus.ACCEPTED);
         when(sharedActivityRepository.findTopByActivityIdAndReceiverIdOrderByCreatedAtDesc(7L, 20L))
                 .thenReturn(Optional.of(existing));
 
-        assertThrows(ConflictException.class, () -> service.shareActivity(7L, 20L, "sender"));
+        SharedActivityResponse response = service.shareActivity(7L, 20L, "sender");
+        assertEquals(78L, response.getId());
+        assertEquals(SharedActivityStatus.ACCEPTED, response.getStatus());
     }
 
     @Test
@@ -338,5 +343,63 @@ class SharedActivityServiceImplTest {
         when(sharedActivityRepository.findById(1L)).thenReturn(Optional.of(sharedActivity));
 
         assertThrows(AccessDeniedException.class, () -> service.resolveSharedActivity(1L, request, "other"));
+    }
+
+    @Test
+    void getSharedActivities_returnsSentAndReceivedWithActivityDetails() {
+        activity.setName("Museo");
+        activity.setDescription("Tour guiado");
+        activity.setLocation("Roma");
+
+        SharedActivity received = new SharedActivity();
+        ReflectionTestUtils.setField(received, "id", 1L);
+        received.setActivity(activity);
+        received.setSender(sender);
+        received.setReceiver(receiver);
+        received.setStatus(SharedActivityStatus.PENDING);
+
+        when(userRepository.findByUsername("receiver")).thenReturn(Optional.of(receiver));
+        when(sharedActivityRepository.findByReceiverIdOrderByCreatedAtDesc(20L)).thenReturn(List.of(received));
+        when(sharedActivityRepository.findBySenderIdOrderByCreatedAtDesc(20L)).thenReturn(List.of());
+
+        List<SharedActivityResponse> responses = service.getSharedActivities("receiver");
+
+        assertEquals(1, responses.size());
+        assertEquals("Museo", responses.get(0).getActivityName());
+        assertEquals("Roma", responses.get(0).getActivityLocation());
+    }
+
+    @Test
+    void shareAllActivities_returnsOneSharePerPlanActivity() {
+        TravelPlanActivity second = new TravelPlanActivity();
+        second.setId(8L);
+        second.setTravelPlan(activity.getTravelPlan());
+        second.setName("Cena");
+        second.setStartTime(LocalDateTime.now());
+        second.setEndTime(LocalDateTime.now().plusHours(1));
+
+        when(userRepository.findByUsername("sender")).thenReturn(Optional.of(sender));
+        when(activityRepository.findByTravelPlanIdOrderByStartTimeAsc(99L))
+                .thenReturn(List.of(activity, second));
+        when(userRepository.findById(20L)).thenReturn(Optional.of(receiver));
+        when(activityRepository.findById(7L)).thenReturn(Optional.of(activity));
+        when(activityRepository.findById(8L)).thenReturn(Optional.of(second));
+        when(connectionRepository.existsConnectionBetweenUsersWithStatus(10L, 20L, ConnectionStatus.ACCEPTED))
+                .thenReturn(true);
+        when(sharedActivityRepository.findTopByActivityIdAndReceiverIdOrderByCreatedAtDesc(any(), any()))
+                .thenReturn(Optional.empty());
+        when(sharedActivityRepository.save(any(SharedActivity.class))).thenAnswer(invocation -> {
+            SharedActivity sharedActivity = invocation.getArgument(0);
+            if (sharedActivity.getActivity().getId().equals(7L)) {
+                ReflectionTestUtils.setField(sharedActivity, "id", 70L);
+            } else {
+                ReflectionTestUtils.setField(sharedActivity, "id", 80L);
+            }
+            return sharedActivity;
+        });
+
+        List<SharedActivityResponse> responses = service.shareAllActivities(99L, 20L, "sender");
+
+        assertEquals(2, responses.size());
     }
 }

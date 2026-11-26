@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -198,5 +199,35 @@ class SharedActivityControllerTest {
             assertThat(responseBody.getPath()).isNotNull();
             assertThat(responseBody.getPath()).isEmpty(); // safePath returns "" for null
         }
+    }
+
+    @Test
+    void getSharedActivitiesShouldReturnAuthenticatedUsersShares() throws Exception {
+        when(sharedActivityService.getSharedActivities(TEST_USERNAME))
+                .thenReturn(java.util.List.of(sharedActivityResponse));
+
+        mockMvc.perform(get("/shared-activities").principal(Objects.requireNonNull(authentication)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.data[0].id").value(1));
+
+        verify(sharedActivityService).getSharedActivities(TEST_USERNAME);
+    }
+
+    @Test
+    void shareAllActivitiesShouldReturnCreatedList() throws Exception {
+        ShareActivityRequest body = new ShareActivityRequest();
+        body.setReceiverId(200L);
+        when(sharedActivityService.shareAllActivities(99L, 200L, TEST_USERNAME))
+                .thenReturn(java.util.List.of(sharedActivityResponse));
+
+        mockMvc.perform(post("/travel-plans/{planId}/activities/share", 99L)
+                        .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .content(Objects.requireNonNull(objectMapper.writeValueAsString(body)))
+                        .principal(Objects.requireNonNull(authentication)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data[0].id").value(1));
+
+        verify(sharedActivityService).shareAllActivities(99L, 200L, TEST_USERNAME);
     }
 }
